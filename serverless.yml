@@ -1,0 +1,112 @@
+org: kylejoeckel
+app: recipe-ai
+service: serverless-flask
+ 
+plugins:
+  - serverless-python-requirements
+  - serverless-wsgi
+  - serverless-offline
+  - serverless-add-api-key
+
+package:
+  exclude:
+    - node_modules/**
+    - venv/**
+custom:
+  apiKeys:
+    - name: recipe-ai-api-key
+      usagePlan:
+        name: "phase-1-usage-plan" 
+        description: "Phase 1 implementation for usage plan"
+        quota:
+          limit: 1000
+          period: DAY
+        throttle:
+          burstLimit: 100
+          rateLimit: 20
+  wsgi:
+    app: app.app
+    packRequirements: false
+  pythonRequirements:
+    dockerizePip: non-linux
+ 
+provider:
+  name: aws
+  runtime: python3.9
+  stage: dev
+  region: us-east-1
+  environment:
+    OPEN_API: "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"
+
+
+ 
+functions:
+  get_recipe:
+    timeout: 30
+    handler: handlers/chef_ai.get_recipe
+    events:
+      - http:
+          path: get-recipe
+          method: get
+          cors: true 
+  update_recipe:
+    timeout: 30
+    handler: handlers/user.update_recipe
+    events:
+      - http:
+          path: update-recipe
+          method: put
+          cors: true 
+  save_recipe:
+    timeout: 30
+    handler: handlers/chef_ai.save_recipe
+    events:
+      - http:
+          path: save-recipe
+          method: post
+          cors: true 
+  sign_up:
+    timeout: 30
+    handler: handlers/user.sign_up
+    events:
+      - http:
+          path: sign-up
+          method: post
+          cors: true 
+  log_in:
+    timeout: 30
+    handler: handlers/user.log_in
+    events:
+      - http:
+          path: log-in
+          method: post
+          cors: true 
+
+resources: # CloudFormation template syntax from here on.
+  Resources:
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: usersTable
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    recipesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: recipesTable
+        AttributeDefinitions:
+          - AttributeName: title
+            AttributeType: S
+        KeySchema:
+          - AttributeName: title
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
